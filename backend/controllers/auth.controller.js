@@ -4,10 +4,8 @@ import { User } from "../models/user.model.js";
 import { generateVerificationToken, generateTokenAndSetCookie } from '../utils/auth.js';
 
 export const signup = async (req, res) => {
-  const { email, password, name } = req.body;
-  console.log(req)
   try {
-
+    const { email, password, name } = req.body;
 
     if (!email || !password || !name) {
       throw new Error('All fields are required');
@@ -41,8 +39,6 @@ export const signup = async (req, res) => {
         password: undefined,
       }
     })
-
-
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
