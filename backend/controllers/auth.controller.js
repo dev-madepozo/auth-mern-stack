@@ -2,6 +2,7 @@ import bcryptjs from 'bcryptjs';
 
 import { User } from "../models/user.model.js";
 import { generateVerificationToken, generateTokenAndSetCookie } from '../utils/auth.js';
+import { senfVerificationEmail } from '../mailtrap/emails.js';
 
 export const signup = async (req, res) => {
   try {
@@ -30,6 +31,7 @@ export const signup = async (req, res) => {
     await user.save()
 
     generateTokenAndSetCookie(res, user._id);
+    await senfVerificationEmail(user.email, verificationToken);
 
     res.status(201).json({
       success: true,
