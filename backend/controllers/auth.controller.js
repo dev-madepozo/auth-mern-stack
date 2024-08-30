@@ -2,7 +2,12 @@ import bcryptjs from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from "../models/user.model.js";
 import { generateVerificationToken, generateTokenAndSetCookie } from '../utils/auth.js';
-import { senfVerificationEmail, sendWelcomeEmail, sendResetPasswordEmail } from '../mailtrap/emails.js';
+import {
+  sendResetPasswordEmail,
+  sendWelcomeEmail,
+  senfVerificationEmail,
+  sentResetSuccessEmail
+} from '../mailtrap/emails.js';
 
 export const signup = async (req, res) => {
   try {
@@ -133,7 +138,7 @@ export const forgotPassword = async (req, res) => {
     const resetTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
 
     user.resetPasswordToken = resetPasswordToken;
-    user.resetTokenExpiresAt = resetTokenExpiresAt;
+    user.resetPasswordExpiresAt = resetTokenExpiresAt;
 
     await user.save();
     const clientUrl = `${process.env.CLIENT_URL}/reset-password/${resetPasswordToken}`;
@@ -143,4 +148,34 @@ export const forgotPassword = async (req, res) => {
     console.log('Error in forgotPassword controller', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
-}
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiresAt: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    }
+
+    // update password
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    await user.save();
+
+    await sentResetSuccessEmail(user.email);
+    res.status(200).json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.log('Error in resetPassword controller', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
