@@ -75,12 +75,42 @@ export const verifyEmail = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in verifyEmail controller", error);
-    res.status(500).json({ success: false, message: 'Server error' })
+    res.status(500).json({ success: false, message: 'Internal server error' })
   }
 };
 
 export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid credentials' })
+    }
+
+    const isPasswordValid = await bcryptjs.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: 'Invalid credentials' })
+    }
+
+    generateTokenAndSetCookie(res, user._id);
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged in successfully',
+      user: {
+        ...user._doc,
+        password: undefined
+      }
+    });
+  } catch (error) {
+    console.log('Error in login controoller', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
 };
 
 export const logout = async (req, res) => {
