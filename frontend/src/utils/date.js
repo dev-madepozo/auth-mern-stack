@@ -1,9 +1,7 @@
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
 
-  if (isNaN(date.getTime())) {
-    return 'Invalid Date';
-  }
+  if (isNaN(date.getTime())) return 'Invalid Date';
 
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
